@@ -4,7 +4,6 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -42,7 +41,7 @@ fun ProjectScreen(
                 ),
                 navigationIcon = {
                     IconButton(onClick = onBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "返回", tint = SurfaceColor)
+                        Icon(Icons.Filled.ArrowBack, contentDescription = "返回", tint = SurfaceColor)
                     }
                 },
                 actions = {
@@ -130,8 +129,9 @@ fun ProjectInfoCard(project: ProjectDetail) {
                 Text("${project.currentChapter}/${project.totalChapters} 章", style = MaterialTheme.typography.bodyMedium, color = TextPrimary)
             }
             Spacer(modifier = Modifier.height(8.dp))
+            val progress = project.currentChapter.toFloat() / project.totalChapters.toFloat().coerceAtLeast(1f)
             LinearProgressIndicator(
-                progress = { project.currentChapter.toFloat() / project.totalChapters.toFloat().coerceAtLeast(1f) },
+                progress = progress,
                 modifier = Modifier.fillMaxWidth().height(8.dp),
                 color = statusColor,
                 trackColor = statusColor.copy(alpha = 0.2f)
@@ -214,5 +214,5 @@ fun ChapterItem(chapter: ChapterInfo, onClick: () -> Unit) {
         modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp),
         colors = ListItemDefaults.colors(containerColor = SurfaceColor)
     )
-    HorizontalDivider(modifier = Modifier.padding(start = 16.dp), color = TextSecondary.copy(alpha = 0.1f))
+    Divider(modifier = Modifier.padding(start = 16.dp), color = TextSecondary.copy(alpha = 0.1f))
 }

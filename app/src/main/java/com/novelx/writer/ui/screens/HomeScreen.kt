@@ -145,8 +145,9 @@ fun ProjectCard(project: Project, onClick: () -> Unit) {
             Spacer(modifier = Modifier.height(12.dp))
             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
                 Text(text = "进度: ${project.currentChapter}/${project.totalChapters} 章", style = MaterialTheme.typography.bodySmall, color = TextSecondary)
+                val progress = if (project.totalChapters > 0) project.currentChapter.toFloat() / project.totalChapters.toFloat() else 0f
                 LinearProgressIndicator(
-                    progress = { if (project.totalChapters > 0) project.currentChapter.toFloat() / project.totalChapters.toFloat() else 0f },
+                    progress = progress,
                     modifier = Modifier.width(100.dp).height(4.dp),
                     color = statusColor,
                     trackColor = statusColor.copy(alpha = 0.2f)

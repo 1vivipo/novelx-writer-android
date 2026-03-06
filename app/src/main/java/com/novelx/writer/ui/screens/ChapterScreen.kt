@@ -4,7 +4,7 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
@@ -38,7 +38,7 @@ fun ChapterScreen(
                 ),
                 navigationIcon = {
                     IconButton(onClick = onBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "返回", tint = SurfaceColor)
+                        Icon(Icons.Filled.ArrowBack, contentDescription = "返回", tint = SurfaceColor)
                     }
                 }
             )
@@ -56,7 +56,7 @@ fun ChapterScreen(
                         Text("${chapter.wordCount} 字", style = MaterialTheme.typography.bodyMedium, color = TextSecondary)
                     }
                 }
-                HorizontalDivider()
+                Divider()
                 Column(modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(16.dp)) {
                     Text(text = chapter.content, style = MaterialTheme.typography.bodyLarge, color = TextPrimary, lineHeight = MaterialTheme.typography.bodyLarge.fontSize * 1.8)
                 }
