@@ -127,11 +127,11 @@ fun ProjectCard(project: Project, onClick: () -> Unit) {
                     style = MaterialTheme.typography.bodySmall,
                     color = Color.Gray
                 )
-                val progress = if (project.totalChapters > 0) project.currentChapter.toFloat() / project.totalChapters else 0f
                 LinearProgressIndicator(
-                    progress = { progress },
+                    progress = if (project.totalChapters > 0) project.currentChapter.toFloat() / project.totalChapters else 0f,
                     modifier = Modifier.width(100.dp).height(4.dp),
-                    color = statusColor
+                    color = statusColor,
+                    trackColor = statusColor.copy(alpha = 0.2f)
                 )
             }
         }
