@@ -1,8 +1,7 @@
 package com.novelx.writer
 
 import android.os.Bundle
-import android.os.Handler
-import android.os.Looper
+import android.util.Log
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
@@ -11,8 +10,12 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.novelx.writer.ui.theme.NovelXWriterTheme
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 import okhttp3.*
 import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.RequestBody.Companion.toRequestBody
@@ -40,10 +43,15 @@ class MainActivity : ComponentActivity() {
         .build()
     
     private val gson = Gson()
-    private val handler = Handler(Looper.getMainLooper())
+    
+    companion object {
+        private const val TAG = "NovelXWriter"
+        private const val BASE_URL = "https://my-project-eight-chi-80.vercel.app/api"
+    }
     
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        Log.d(TAG, "onCreate called")
         enableEdgeToEdge()
         setContent {
             NovelXWriterTheme {
@@ -65,7 +73,9 @@ class MainActivity : ComponentActivity() {
         var selectedProject by remember { mutableStateOf<Project?>(null) }
         
         LaunchedEffect(Unit) {
+            Log.d(TAG, "LaunchedEffect: Loading projects")
             loadProjects { result ->
+                Log.d(TAG, "loadProjects result: $result")
                 when (result) {
                     is Result.Success -> {
                         projects = result.data
@@ -95,30 +105,39 @@ class MainActivity : ComponentActivity() {
             }
             isLoading -> {
                 Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                    CircularProgressIndicator()
+                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                        CircularProgressIndicator(color = Color(0xFF6366F1))
+                        Spacer(modifier = Modifier.height(16.dp))
+                        Text("正在加载项目列表...", color = Color.Gray)
+                    }
                 }
             }
             error != null -> {
                 Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                     Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                        Text("加载失败: $error")
+                        Text("加载失败", color = Color(0xFFEF4444), style = MaterialTheme.typography.titleMedium)
+                        Spacer(modifier = Modifier.height(8.dp))
+                        Text(error ?: "未知错误", color = Color.Gray, textAlign = TextAlign.Center)
                         Spacer(modifier = Modifier.height(16.dp))
-                        Button(onClick = {
-                            isLoading = true
-                            error = null
-                            loadProjects { result ->
-                                when (result) {
-                                    is Result.Success -> {
-                                        projects = result.data
-                                        isLoading = false
-                                    }
-                                    is Result.Error -> {
-                                        error = result.message
-                                        isLoading = false
+                        Button(
+                            onClick = {
+                                isLoading = true
+                                error = null
+                                loadProjects { result ->
+                                    when (result) {
+                                        is Result.Success -> {
+                                            projects = result.data
+                                            isLoading = false
+                                        }
+                                        is Result.Error -> {
+                                            error = result.message
+                                            isLoading = false
+                                        }
                                     }
                                 }
-                            }
-                        }) {
+                            },
+                            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF6366F1))
+                        ) {
                             Text("重试")
                         }
                     }
@@ -126,7 +145,11 @@ class MainActivity : ComponentActivity() {
             }
             projects.isEmpty() -> {
                 Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                    Text("暂无项目，点击右下角按钮创建")
+                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                        Text("暂无项目", color = Color.Gray)
+                        Spacer(modifier = Modifier.height(8.dp))
+                        Text("点击右下角按钮创建新项目", color = Color.Gray, style = MaterialTheme.typography.bodySmall)
+                    }
                 }
             }
             else -> {
@@ -149,13 +172,16 @@ class MainActivity : ComponentActivity() {
     private fun loadProjects(callback: (Result<List<Project>>) -> Unit) {
         Thread {
             try {
+                Log.d(TAG, "loadProjects: Starting request")
                 val request = Request.Builder()
-                    .url("https://my-project-eight-chi-80.vercel.app/api/novel/projects")
+                    .url("$BASE_URL/novel/projects")
                     .build()
                 
                 client.newCall(request).execute().use { response ->
+                    Log.d(TAG, "loadProjects: Response code ${response.code}")
                     if (response.isSuccessful) {
                         val body = response.body?.string() ?: "{}"
+                        Log.d(TAG, "loadProjects: Response body $body")
                         val type = object : TypeToken<Map<String, Any>>() {}.type
                         val map: Map<String, Any> = gson.fromJson(body, type)
                         @Suppress("UNCHECKED_CAST")
@@ -173,13 +199,15 @@ class MainActivity : ComponentActivity() {
                                 updatedAt = p["updatedAt"] as? String ?: ""
                             )
                         } ?: emptyList()
-                        handler.post { callback(Result.Success(projectsList)) }
+                        Log.d(TAG, "loadProjects: Parsed ${projectsList.size} projects")
+                        runOnUiThread { callback(Result.Success(projectsList)) }
                     } else {
-                        handler.post { callback(Result.Error("HTTP ${response.code}")) }
+                        runOnUiThread { callback(Result.Error("HTTP ${response.code}")) }
                     }
                 }
             } catch (e: Exception) {
-                handler.post { callback(Result.Error(e.message ?: "Unknown error")) }
+                Log.e(TAG, "loadProjects error", e)
+                runOnUiThread { callback(Result.Error(e.message ?: "Unknown error")) }
             }
         }.start()
     }
@@ -188,7 +216,7 @@ class MainActivity : ComponentActivity() {
         Thread {
             try {
                 val request = Request.Builder()
-                    .url("https://my-project-eight-chi-80.vercel.app/api/novel/project?id=$projectId")
+                    .url("$BASE_URL/novel/project?id=$projectId")
                     .build()
                 
                 client.newCall(request).execute().use { response ->
@@ -210,16 +238,16 @@ class MainActivity : ComponentActivity() {
                                 createdAt = p["createdAt"] as? String ?: "",
                                 updatedAt = p["updatedAt"] as? String ?: ""
                             )
-                            handler.post { callback(Result.Success(project)) }
+                            runOnUiThread { callback(Result.Success(project)) }
                         } else {
-                            handler.post { callback(Result.Error("Project not found")) }
+                            runOnUiThread { callback(Result.Error("Project not found")) }
                         }
                     } else {
-                        handler.post { callback(Result.Error("HTTP ${response.code}")) }
+                        runOnUiThread { callback(Result.Error("HTTP ${response.code}")) }
                     }
                 }
             } catch (e: Exception) {
-                handler.post { callback(Result.Error(e.message ?: "Unknown error")) }
+                runOnUiThread { callback(Result.Error(e.message ?: "Unknown error")) }
             }
         }.start()
     }
@@ -231,19 +259,19 @@ class MainActivity : ComponentActivity() {
                 val body = json.toRequestBody("application/json".toMediaType())
                 
                 val request = Request.Builder()
-                    .url("https://my-project-eight-chi-80.vercel.app/api/novel/create")
+                    .url("$BASE_URL/novel/create")
                     .post(body)
                     .build()
                 
                 client.newCall(request).execute().use { response ->
                     if (response.isSuccessful) {
-                        handler.post { callback(Result.Success("Created")) }
+                        runOnUiThread { callback(Result.Success("Created")) }
                     } else {
-                        handler.post { callback(Result.Error("HTTP ${response.code}")) }
+                        runOnUiThread { callback(Result.Error("HTTP ${response.code}")) }
                     }
                 }
             } catch (e: Exception) {
-                handler.post { callback(Result.Error(e.message ?: "Unknown error")) }
+                runOnUiThread { callback(Result.Error(e.message ?: "Unknown error")) }
             }
         }.start()
     }
