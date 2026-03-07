@@ -1,0 +1,94 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  name      String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Post {
+  id        String   @id @default(cuid())
+  title     String
+  content   String?
+  published Boolean  @default(false)
+  authorId  String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+// 小说项目模型
+model NovelProject {
+  id             String   @id @default(cuid())
+  title          String
+  prompt         String
+  totalChapters  Int
+  currentChapter Int      @default(0)
+  status         String   @default("pending") // pending, setting, writing, paused, completed, error
+  error          String?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+  
+  settings       NovelSetting?
+  chapters       Chapter[]
+}
+
+// 小说设定模型
+model NovelSetting {
+  id             String   @id @default(cuid())
+  projectId      String   @unique
+  worldview      String   @default("")
+  characters     String   @default("")
+  outline        String   @default("")
+  plotDesign     String   @default("")
+  chapterOutline String   @default("")
+  writingRules   String   @default("")
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+  
+  project        NovelProject @relation(fields: [projectId], references: [id], onDelete: Cascade)
+}
+
+// 章节模型
+model Chapter {
+  id          String   @id @default(cuid())
+  projectId   String
+  number      Int
+  title       String
+  content     String   @default("")
+  status      String   @default("pending") // pending, writing, reviewing, completed, error
+  wordCount   Int      @default(0)
+  retryCount  Int      @default(0)
+  reviewNotes String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  project     NovelProject @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  
+  @@index([projectId])
+  @@index([projectId, number])
+}
+
+// 邮件发送记录
+model EmailLog {
+  id          String   @id @default(cuid())
+  projectId   String
+  chapterNum  Int
+  email       String
+  status      String   // pending, sent, failed
+  error       String?
+  createdAt   DateTime @default(now())
+  
+  @@index([projectId])
+}
